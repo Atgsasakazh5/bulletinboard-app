@@ -1,4 +1,4 @@
-package com.example.bulletinboard.bulletinboard_app;
+package com.example.bulletinboard;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;

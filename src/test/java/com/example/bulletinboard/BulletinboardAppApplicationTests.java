@@ -1,4 +1,4 @@
-package com.example.bulletinboard.bulletinboard_app;
+package com.example.bulletinboard;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
