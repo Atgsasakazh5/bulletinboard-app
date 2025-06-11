@@ -17,6 +17,7 @@ import org.springframework.test.web.servlet.*;
 
 import com.example.bulletinboard.dto.*;
 import com.example.bulletinboard.entity.*;
+import com.example.bulletinboard.exception.*;
 import com.example.bulletinboard.service.*;
 import com.fasterxml.jackson.databind.*;
 
@@ -90,5 +91,38 @@ public class PostControllerTest {
                 .andExpect(status().isBadRequest());
 
         verify(postService, never()).createPost(any(PostCreateRequest.class));
+    }
+
+    @Test
+    @DisplayName("ID検索で投稿が見つかった場合のテスト-正常系")
+    void testFindById_shouldReturnCorrectHttpStatus_whenIdFound() throws Exception {
+
+        // Arange
+        Post expectedPost = new Post(1L, "A", "テスト", LocalDateTime.now());
+
+        when(postService.findById(1L)).thenReturn(expectedPost);
+
+        // Act Assert
+        mockMvc.perform(get("/api/posts/{id}", 1L)).andExpect(status().isOk()).andExpect(jsonPath("$.id").value(1L))
+                .andExpect(jsonPath("$.author").value("A"));
+
+        // 1回だけfindById(1L)が呼び出されるか
+        verify(postService, times(1)).findById(1L);
+
+    }
+
+    @Test
+    @DisplayName("ID検索で投稿が見つからなかった場合のテスト-異常系")
+    void testFindById_shouldReturnBadStatus_whenIdNotFound() throws Exception {
+
+        // Arange
+        when(postService.findById(99L)).thenThrow(new ResourceNotFoundException("Post not found"));
+
+        // Act Assert
+        mockMvc.perform(get("/api/posts/{id}", 99L)).andExpect(status().isNotFound());
+
+        // 1回だけfindById(99L)が呼び出されるか
+        verify(postService, times(1)).findById(99L);
+
     }
 }
