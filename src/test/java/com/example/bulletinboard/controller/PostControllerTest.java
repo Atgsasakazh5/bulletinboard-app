@@ -1,5 +1,6 @@
 package com.example.bulletinboard.controller;
 
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -11,16 +12,21 @@ import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.*;
 import org.springframework.boot.test.autoconfigure.web.servlet.*;
 import org.springframework.boot.test.mock.mockito.*;
+import org.springframework.http.*;
 import org.springframework.test.web.servlet.*;
 
+import com.example.bulletinboard.dto.*;
 import com.example.bulletinboard.entity.*;
 import com.example.bulletinboard.service.*;
+import com.fasterxml.jackson.databind.*;
 
 @WebMvcTest(PostController.class)
 public class PostControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
+    @Autowired
+    private ObjectMapper objectMapper;
 
     @MockBean
     private PostService postService;
@@ -49,4 +55,40 @@ public class PostControllerTest {
 
     }
 
+    @Test
+    @DisplayName("新規作成APIのテスト-正常系")
+    void testCreatePost_shouldReturnCorrectHttpStatus() throws Exception {
+
+        // Arange
+        PostCreateRequest request = new PostCreateRequest("A", "テストです");
+        Post expectedPost = new Post(1L, request.author(), request.content(), LocalDateTime.now());
+
+        when(postService.createPost(any(PostCreateRequest.class))).thenReturn(expectedPost);
+
+        // Act
+        // Assert objectMapperでjsonを文字列にしてPOSTリクエストを疑似実行
+        String requestBody = objectMapper.writeValueAsString(request);
+        mockMvc.perform(post("/api/posts").contentType(MediaType.APPLICATION_JSON).content(requestBody))
+                .andExpect(status().isCreated()).andExpect(jsonPath("$.id").value(1L))
+                .andExpect(jsonPath("$.author").value("A"));
+
+        verify(postService, times(1)).createPost(any(PostCreateRequest.class));
+
+    }
+
+    @Test
+    @DisplayName("新規作成に必要な項目が不足している場合のテスト-異常系")
+    void testCreatePost_shouldReturnBadStatus_whenSendWrongRequest() throws Exception {
+
+        // Arange
+        PostCreateRequest request = new PostCreateRequest(null, "テストです");
+
+        // Act
+        // Assert objectMapperでjsonを文字列にしてPOSTリクエストを疑似実行
+        String requestBody = objectMapper.writeValueAsString(request);
+        mockMvc.perform(post("/api/posts").contentType(MediaType.APPLICATION_JSON).content(requestBody))
+                .andExpect(status().isBadRequest());
+
+        verify(postService, never()).createPost(any(PostCreateRequest.class));
+    }
 }
