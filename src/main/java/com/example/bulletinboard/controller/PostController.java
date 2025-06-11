@@ -31,4 +31,11 @@ public class PostController {
     public Post createPost(@Valid @RequestBody PostCreateRequest request) {
         return postService.createPost(request);
     }
+
+    // idの投稿が存在しない場合はExceptionの@ResponseStatusからSpringがレスポンスを生成。
+    // 200OKのStatusは省略可
+    @GetMapping("/posts/{id}")
+    public Post findById(@PathVariable Long id) {
+        return postService.findById(id);
+    }
 }
