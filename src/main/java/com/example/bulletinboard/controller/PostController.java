@@ -26,7 +26,7 @@ public class PostController {
         return postService.findAll();
     }
 
-    @PostMapping("/posts") // POSTれクエスト
+    @PostMapping("/posts") // POSTリクエスト
     @ResponseStatus(HttpStatus.CREATED)
     public Post createPost(@Valid @RequestBody PostCreateRequest request) {
         return postService.createPost(request);
@@ -37,5 +37,12 @@ public class PostController {
     @GetMapping("/posts/{id}")
     public Post findById(@PathVariable Long id) {
         return postService.findById(id);
+    }
+    
+    //idの一致する投稿が存在する場合に削除
+    @DeleteMapping("/posts/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteById(@PathVariable Long id) {
+        postService.deleteById(id);
     }
 }

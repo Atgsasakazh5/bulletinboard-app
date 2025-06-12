@@ -125,4 +125,32 @@ public class PostControllerTest {
         verify(postService, times(1)).findById(99L);
 
     }
+
+    @Test
+    @DisplayName("削除が成功する場合-正常系")
+    void testDeleteById_shouldReturn204_whenIdExists() throws Exception {
+
+        // Arange 戻り値がvoidなので、何もしないようにする
+        doNothing().when(postService).deleteById(1L);
+
+        // Act Assert
+        //204を返すか確認
+        mockMvc.perform(delete("/api/posts/{id}", 1L)).andExpect(status().isNoContent());
+
+        verify(postService, times(1)).deleteById(1L);
+    }
+
+    @Test
+    @DisplayName("IDが存在せず削除できない場合-異常系")
+    void testDeleteById_shouldReturnBadStatus_whenIdNotFound() throws Exception {
+
+        // Arange voidメソッドが例外をスローする場合
+        doThrow(new ResourceNotFoundException("Post not found")).when(postService).deleteById(99L);
+
+        // Act Assert
+        //404を返すか確認
+        mockMvc.perform(delete("/api/posts/{id}", 99L)).andExpect(status().isNotFound());
+
+        verify(postService, times(1)).deleteById(99L);
+    }
 }

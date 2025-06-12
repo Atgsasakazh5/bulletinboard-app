@@ -38,4 +38,13 @@ public class PostService {
         return postRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Post not found with id: " + id));
     }
+
+    // ID指定で投稿削除
+    public void deleteById(Long id) {
+        if (postRepository.existsById(id)) {
+            postRepository.deleteById(id);
+        } else {
+            throw new ResourceNotFoundException("Post not found with id: " + id);
+        }
+    }
 }

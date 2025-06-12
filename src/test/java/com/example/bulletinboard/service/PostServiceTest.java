@@ -120,4 +120,36 @@ public class PostServiceTest {
                 .hasMessage("Post not found with id: 99"); // 例外メッセージが正しいか検証
 
     }
+
+    @Test
+    @DisplayName("IDが存在し、削除が成功する場合")
+    void testDeleteById_shouldRunDeleteOnece_whenIdFound() {
+
+        // Arrange
+        when(postRepository.existsById(1L)).thenReturn(true);
+        doNothing().when(postRepository).deleteById(1L);
+
+        // Act
+        postService.deleteById(1L);
+
+        // Assert
+        verify(postRepository, times(1)).existsById(1L);
+        verify(postRepository, times(1)).deleteById(1L);
+
+    }
+
+    @Test
+    @DisplayName("IDが存在しない場合")
+    void testDeleteById_shouldReturnResourceNotFoundException_whenIdNotFound() {
+
+        // Arange
+        when(postRepository.existsById(anyLong())).thenReturn(false);
+
+        // Act Assert
+        assertThatThrownBy(() -> {
+            postService.deleteById(99L);
+        }).isInstanceOf(ResourceNotFoundException.class).hasMessage("Post not found with id: 99");
+
+        verify(postRepository, never()).deleteById(anyLong());
+    }
 }
