@@ -4,6 +4,7 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.*;
 
 import java.time.*;
 import java.util.*;
@@ -12,9 +13,11 @@ import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.*;
 import org.springframework.boot.test.autoconfigure.web.servlet.*;
 import org.springframework.boot.test.mock.mockito.*;
+import org.springframework.context.annotation.*;
 import org.springframework.http.*;
 import org.springframework.test.web.servlet.*;
 
+import com.example.bulletinboard.config.*;
 import com.example.bulletinboard.dto.*;
 import com.example.bulletinboard.entity.*;
 import com.example.bulletinboard.exception.*;
@@ -22,6 +25,7 @@ import com.example.bulletinboard.service.*;
 import com.fasterxml.jackson.databind.*;
 
 @WebMvcTest(PostController.class)
+@Import(SecurityConfig.class) // Test configまで自動で読み込んでくれないので、明示する
 public class PostControllerTest {
 
     @Autowired
@@ -70,7 +74,8 @@ public class PostControllerTest {
         // Assert
         // objectMapperでjsonを文字列にしてPOSTリクエストを疑似実行
         String requestBody = objectMapper.writeValueAsString(request);
-        mockMvc.perform(post("/api/posts").contentType(MediaType.APPLICATION_JSON).content(requestBody))
+        mockMvc.perform(
+                post("/api/posts").with(user("user")).contentType(MediaType.APPLICATION_JSON).content(requestBody))
                 .andExpect(status().isCreated()).andExpect(jsonPath("$.id").value(1L))
                 .andExpect(jsonPath("$.author").value("A"));
 
@@ -88,7 +93,8 @@ public class PostControllerTest {
         // Act
         // Assert objectMapperでjsonを文字列にしてPOSTリクエストを疑似実行
         String requestBody = objectMapper.writeValueAsString(request);
-        mockMvc.perform(post("/api/posts").contentType(MediaType.APPLICATION_JSON).content(requestBody))
+        mockMvc.perform(
+                post("/api/posts").with(user("user")).contentType(MediaType.APPLICATION_JSON).content(requestBody))
                 .andExpect(status().isBadRequest());
 
         verify(postService, never()).createPost(any(PostCreateRequest.class));
@@ -104,8 +110,8 @@ public class PostControllerTest {
         when(postService.findById(1L)).thenReturn(expectedPost);
 
         // Act Assert
-        mockMvc.perform(get("/api/posts/{id}", 1L)).andExpect(status().isOk()).andExpect(jsonPath("$.id").value(1L))
-                .andExpect(jsonPath("$.author").value("A"));
+        mockMvc.perform(get("/api/posts/{id}", 1L).with(user("user"))).andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(1L)).andExpect(jsonPath("$.author").value("A"));
 
         // 1回だけfindById(1L)が呼び出されるか
         verify(postService, times(1)).findById(1L);
@@ -120,7 +126,7 @@ public class PostControllerTest {
         when(postService.findById(99L)).thenThrow(new ResourceNotFoundException("Post not found"));
 
         // Act Assert
-        mockMvc.perform(get("/api/posts/{id}", 99L)).andExpect(status().isNotFound());
+        mockMvc.perform(get("/api/posts/{id}", 99L).with(user("user"))).andExpect(status().isNotFound());
 
         // 1回だけfindById(99L)が呼び出されるか
         verify(postService, times(1)).findById(99L);
@@ -136,7 +142,7 @@ public class PostControllerTest {
 
         // Act Assert
         // 204を返すか確認
-        mockMvc.perform(delete("/api/posts/{id}", 1L)).andExpect(status().isNoContent());
+        mockMvc.perform(delete("/api/posts/{id}", 1L).with(user("user"))).andExpect(status().isNoContent());
 
         verify(postService, times(1)).deleteById(1L);
     }
@@ -150,7 +156,7 @@ public class PostControllerTest {
 
         // Act Assert
         // 404を返すか確認
-        mockMvc.perform(delete("/api/posts/{id}", 99L)).andExpect(status().isNotFound());
+        mockMvc.perform(delete("/api/posts/{id}", 99L).with(user("user"))).andExpect(status().isNotFound());
 
         verify(postService, times(1)).deleteById(99L);
     }
@@ -167,25 +173,38 @@ public class PostControllerTest {
 
         // Act Assret
         String requestBody = objectMapper.writeValueAsString(requestDto);
-        mockMvc.perform(put("/api/posts/{id}",1L).contentType(MediaType.APPLICATION_JSON).content(requestBody))
-                .andExpect(status().isOk()).andExpect(jsonPath("$.id").value(1L))
+        mockMvc.perform(put("/api/posts/{id}", 1L).with(user("user")).contentType(MediaType.APPLICATION_JSON)
+                .content(requestBody)).andExpect(status().isOk()).andExpect(jsonPath("$.id").value(1L))
                 .andExpect(jsonPath("$.author").value("A"));
 
         verify(postService, times(1)).updatePost(eq(1L), any(PostCreateRequest.class));
 
     }
-    
+
     @Test
     @DisplayName("更新失敗-異常系")
     void testUpdatePost_shouldReturn404_whenIdNotFound() throws Exception {
-        
-        //Arrange
+
+        // Arrange
         PostCreateRequest requestDto = new PostCreateRequest("A", "テストです");
-        when(postService.updatePost(eq(99L), any(PostCreateRequest.class))).thenThrow(new ResourceNotFoundException("Post not found"));
-        
-        //Act Assert
+        when(postService.updatePost(eq(99L), any(PostCreateRequest.class)))
+                .thenThrow(new ResourceNotFoundException("Post not found"));
+
+        // Act Assert
         String requestBody = objectMapper.writeValueAsString(requestDto);
-        mockMvc.perform(put("/api/posts/{id}",99L).contentType(MediaType.APPLICATION_JSON).content(requestBody))
-        .andExpect(status().isNotFound());
+        mockMvc.perform(put("/api/posts/{id}", 99L).with(user("user")).contentType(MediaType.APPLICATION_JSON)
+                .content(requestBody)).andExpect(status().isNotFound());
+    }
+
+    @Test
+    @DisplayName("新規作成APIのテスト-未認証")
+    void createPost_unauthenticated_shouldReturn401() throws Exception {
+
+        // Arange
+        String requestBody = "{\"author\":\"test\",\"content\":\"test content\"}";
+
+        // Act assert
+        mockMvc.perform(post("/api/posts").contentType(MediaType.APPLICATION_JSON).content(requestBody))
+                .andExpect(status().isUnauthorized());
     }
 }
