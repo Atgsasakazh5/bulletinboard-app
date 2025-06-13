@@ -29,8 +29,8 @@ public class PostService {
         newPost.setAuthor(request.author()); // recordなのでゲッターはフィールド名で自動生成
         newPost.setContent(request.content());
         newPost.setCreatedAt(LocalDateTime.now());
-        Post savedPost = postRepository.save(newPost); // saveメソッドは継承元に含まれており、渡したエンティティをIDが採番された状態で保存し、戻り値として渡してくれる
-        return savedPost;
+        // saveメソッドは継承元に含まれており、渡したエンティティをIDが採番された状態で保存し、戻り値として渡してくれる
+        return postRepository.save(newPost);
     }
 
     // IDで投稿検索
@@ -46,5 +46,16 @@ public class PostService {
         } else {
             throw new ResourceNotFoundException("Post not found with id: " + id);
         }
+    }
+
+    // ID指定で投稿を更新
+    public Post updatePost(Long id, PostCreateRequest request) {
+        // findByIdに渡し、IDが存在しなければ例外を投げてくれる
+        Post targetPost = findById(id);
+
+        targetPost.setAuthor(request.author());
+        targetPost.setContent(request.content());
+
+        return postRepository.save(targetPost);
     }
 }

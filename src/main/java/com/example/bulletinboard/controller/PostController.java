@@ -38,11 +38,17 @@ public class PostController {
     public Post findById(@PathVariable Long id) {
         return postService.findById(id);
     }
-    
-    //idの一致する投稿が存在する場合に削除
+
+    // idの一致する投稿が存在する場合に削除
     @DeleteMapping("/posts/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteById(@PathVariable Long id) {
         postService.deleteById(id);
+    }
+
+    // idの一致する投稿が存在する場合に更新
+    @PutMapping("/posts/{id}")
+    public Post updatePost(@PathVariable Long id, @Valid @RequestBody PostCreateRequest request) {
+        return postService.updatePost(id, request);
     }
 }

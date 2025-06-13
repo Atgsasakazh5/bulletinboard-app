@@ -152,4 +152,49 @@ public class PostServiceTest {
 
         verify(postRepository, never()).deleteById(anyLong());
     }
+
+    @Test
+    @DisplayName("IDが見つかり、更新が成功する場合")
+    void testUpdatePost_shouldReturnCorrectPost_whenIdExists() {
+
+        // Arange
+        var requestDto = new PostCreateRequest("B", "更新後");
+        var existingPost = new Post(1L, "A", "更新前", LocalDateTime.now());
+        var updatedPost = new Post(1L, "B", "更新後", LocalDateTime.now());
+
+        when(postRepository.findById(1L)).thenReturn(Optional.of(existingPost));
+        when(postRepository.save(any(Post.class))).thenReturn(updatedPost);
+
+        // Act
+        var actualPost = postService.updatePost(1L, requestDto);
+
+        // Assert
+        ArgumentCaptor<Post> postCapture = ArgumentCaptor.forClass(Post.class);
+        assertThat(actualPost).isEqualTo(updatedPost);
+
+        // postRepositoryのsaveメソッドが呼ばれたことを確認し、その時の引数をpostCaptorに捕獲させる
+        verify(postRepository).save(postCapture.capture());
+
+        Post capturedPost = postCapture.getValue(); // captureしたオブジェクトの取得
+
+        assertThat(capturedPost.getAuthor()).isEqualTo(requestDto.author());
+        assertThat(capturedPost.getContent()).isEqualTo(requestDto.content());
+        assertThat(capturedPost.getId()).isEqualTo(1L);
+    }
+
+    @Test
+    @DisplayName("IDが見つからず、更新できない場合")
+    void testUpdatePost_shouldReturnResourceNotFoundException_whenIdNotFound() {
+
+        // Arrange
+        var requestDto = new PostCreateRequest("B", "更新後");
+        when(postRepository.findById(99L)).thenReturn(Optional.empty());
+
+        // Act Assrt
+        assertThatThrownBy(() -> {
+            postService.updatePost(99L, requestDto);
+        }).isInstanceOf(ResourceNotFoundException.class).hasMessage("Post not found with id: 99");
+
+        verify(postRepository, never()).save(any(Post.class));
+    }
 }

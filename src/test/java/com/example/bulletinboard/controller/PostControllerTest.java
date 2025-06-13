@@ -67,7 +67,8 @@ public class PostControllerTest {
         when(postService.createPost(any(PostCreateRequest.class))).thenReturn(expectedPost);
 
         // Act
-        // Assert objectMapperでjsonを文字列にしてPOSTリクエストを疑似実行
+        // Assert
+        // objectMapperでjsonを文字列にしてPOSTリクエストを疑似実行
         String requestBody = objectMapper.writeValueAsString(request);
         mockMvc.perform(post("/api/posts").contentType(MediaType.APPLICATION_JSON).content(requestBody))
                 .andExpect(status().isCreated()).andExpect(jsonPath("$.id").value(1L))
@@ -134,7 +135,7 @@ public class PostControllerTest {
         doNothing().when(postService).deleteById(1L);
 
         // Act Assert
-        //204を返すか確認
+        // 204を返すか確認
         mockMvc.perform(delete("/api/posts/{id}", 1L)).andExpect(status().isNoContent());
 
         verify(postService, times(1)).deleteById(1L);
@@ -148,9 +149,43 @@ public class PostControllerTest {
         doThrow(new ResourceNotFoundException("Post not found")).when(postService).deleteById(99L);
 
         // Act Assert
-        //404を返すか確認
+        // 404を返すか確認
         mockMvc.perform(delete("/api/posts/{id}", 99L)).andExpect(status().isNotFound());
 
         verify(postService, times(1)).deleteById(99L);
+    }
+
+    @Test
+    @DisplayName("更新成功-正常系")
+    void testUpdatePost_shouldReturnUpdatedPost_whenIdExists() throws Exception {
+
+        // Arrange
+        PostCreateRequest requestDto = new PostCreateRequest("A", "テストです");
+        Post updatedPost = new Post(1L, requestDto.author(), requestDto.content(), LocalDateTime.now());
+
+        when(postService.updatePost(eq(1L), any(PostCreateRequest.class))).thenReturn(updatedPost);
+
+        // Act Assret
+        String requestBody = objectMapper.writeValueAsString(requestDto);
+        mockMvc.perform(put("/api/posts/{id}",1L).contentType(MediaType.APPLICATION_JSON).content(requestBody))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.id").value(1L))
+                .andExpect(jsonPath("$.author").value("A"));
+
+        verify(postService, times(1)).updatePost(eq(1L), any(PostCreateRequest.class));
+
+    }
+    
+    @Test
+    @DisplayName("更新失敗-異常系")
+    void testUpdatePost_shouldReturn404_whenIdNotFound() throws Exception {
+        
+        //Arrange
+        PostCreateRequest requestDto = new PostCreateRequest("A", "テストです");
+        when(postService.updatePost(eq(99L), any(PostCreateRequest.class))).thenThrow(new ResourceNotFoundException("Post not found"));
+        
+        //Act Assert
+        String requestBody = objectMapper.writeValueAsString(requestDto);
+        mockMvc.perform(put("/api/posts/{id}",99L).contentType(MediaType.APPLICATION_JSON).content(requestBody))
+        .andExpect(status().isNotFound());
     }
 }
