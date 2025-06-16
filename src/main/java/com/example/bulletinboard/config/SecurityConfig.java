@@ -3,12 +3,16 @@ package com.example.bulletinboard.config;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
+import org.springframework.security.authentication.*;
 import org.springframework.security.config.Customizer;
+import org.springframework.security.config.annotation.authentication.configuration.*;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.crypto.bcrypt.*;
+import org.springframework.security.crypto.password.*;
 import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
 
@@ -37,20 +41,26 @@ public class SecurityConfig {
         
         return http.build();
     }
-
+    
     /**
-     * テスト用のインメモリユーザーを作成するBean
-     * @return UserDetailsService
+     * パスワードをハッシュ化するためのPasswordEncoderのBean
+     * @return PasswordEncoder
      */
     @Bean
-    public UserDetailsService userDetailsService() {
-        // 5. ユーザー名"user"、パスワード"password"のユーザーを作成
-        UserDetails user = User.withDefaultPasswordEncoder() // ※本番では非推奨
-            .username("user")
-            .password("password")
-            .roles("USER")
-            .build();
-
-        return new InMemoryUserDetailsManager(user);
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
     }
+   
+    /**
+     * 認証処理の要であるAuthenticationManagerをBeanとして登録
+     * @param authConfig
+     * @return
+     * @throws Exception
+     */
+    @Bean
+    public AuthenticationManager authenticationManager(AuthenticationConfiguration authConfig) throws Exception {
+        return authConfig.getAuthenticationManager();
+    }
+
+    
 }
