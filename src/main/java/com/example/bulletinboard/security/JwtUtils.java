@@ -13,33 +13,47 @@ import io.jsonwebtoken.security.Keys;
 @Component
 public class JwtUtils {
 
-    // application.propertiesから秘密鍵を読み込む
     @Value("${app.jwtSecret}")
     private String jwtSecret;
 
-    // application.propertiesから有効期限を読み込む
     @Value("${app.jwtExpirationMs}")
     private int jwtExpirationMs;
 
-    // 認証情報からJWTを生成するメソッド
+    // トークンを発行する
     public String generateToken(Authentication authentication) {
+
         UserDetails userPrincipal = (UserDetails) authentication.getPrincipal();
 
         Date now = new Date();
         Date expiryDate = new Date(now.getTime() + jwtExpirationMs);
 
-        return Jwts.builder()
-                .subject(userPrincipal.getUsername()) // ユーザー名を主題に設定
-                .issuedAt(now) // 発行日時
-                .expiration(expiryDate) // 有効期限
-                .signWith(key()) // 秘密鍵で署名
-                .compact(); // JWT文字列を生成
+        String token = Jwts.builder().subject(userPrincipal.getUsername()).issuedAt(now).expiration(expiryDate)
+                .signWith(key()) // この中でkey()メソッドが呼ばれる
+                .compact();
+
+        return token;
     }
 
-    // Base64エンコードされた秘密鍵をデコードしてSecretKeyオブジェクトを生成
     private SecretKey key() {
-        return Keys.hmacShaKeyFor(Decoders.BASE64.decode(jwtSecret));
+        byte[] keyBytes = Decoders.BASE64.decode(jwtSecret);
+        SecretKey secretKey = Keys.hmacShaKeyFor(keyBytes);
+        return secretKey;
     }
 
-    // ここにJWTの検証や、トークンからユーザー名を取得するメソッドを後で追加していきます
+    // トークンからユーザー名を抽出するメソッド
+    public String getUsernameFromToken(String token) {
+        return Jwts.parser().verifyWith(key()).build().parseSignedClaims(token).getPayload().getSubject();
+    }
+
+    // トークンの有効性を検証するメソッド
+    public boolean validateToken(String token) {
+        try {
+            Jwts.parser().verifyWith(key()).build().parse(token);
+            return true;
+        } catch (Exception e) {
+            // 例外が発生した場合（無効なトークンなど）はfalseを返す
+            System.err.println("Invalid JWT token: " + e.getMessage());
+        }
+        return false;
+    }
 }
