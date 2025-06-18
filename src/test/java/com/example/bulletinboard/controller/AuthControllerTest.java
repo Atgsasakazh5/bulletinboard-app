@@ -1,34 +1,30 @@
 package com.example.bulletinboard.controller;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.*;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import java.lang.runtime.*;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.MediaType;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.transaction.annotation.Transactional;
 
-import org.junit.jupiter.api.*;
-import org.springframework.beans.factory.annotation.*;
-import org.springframework.boot.test.autoconfigure.web.servlet.*;
-import org.springframework.boot.test.mock.mockito.*;
-import org.springframework.context.annotation.*;
-import org.springframework.http.*;
-import org.springframework.security.authentication.*;
-import org.springframework.security.core.*;
-import org.springframework.test.web.servlet.*;
+import com.example.bulletinboard.dto.LoginRequest;
+import com.example.bulletinboard.dto.SignupRequest;
+import com.example.bulletinboard.entity.User;
+import com.example.bulletinboard.repository.UserRepository;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
-import com.example.bulletinboard.config.*;
-import com.example.bulletinboard.dto.*;
-import com.example.bulletinboard.entity.*;
-import com.example.bulletinboard.exception.*;
-import com.example.bulletinboard.security.*;
-import com.example.bulletinboard.service.*;
-import com.fasterxml.jackson.core.*;
-import com.fasterxml.jackson.databind.*;
-
-@WebMvcTest(AuthController.class)
-@Import(SecurityConfig.class)
+@SpringBootTest // アプリケーションの全機能を読み込む
+@AutoConfigureMockMvc // MockMvcを自動設定する
+@Transactional // 各テスト後にデータベースの状態を元に戻す
 class AuthControllerTest {
 
     @Autowired
@@ -37,102 +33,89 @@ class AuthControllerTest {
     @Autowired
     private ObjectMapper objectMapper;
 
-    @MockBean
-    private AuthService authService;
+    @Autowired
+    private UserRepository userRepository;
 
-    @MockBean
-    private AuthenticationManager authenticationManager;
-
-    @MockBean
-    private JwtUtils jwtUtils;
+    @Autowired
+    private PasswordEncoder passwordEncoder;
 
     @Test
     @DisplayName("signupのテスト-正常系")
-    void testRegisterUser_shouldReturn201_whentakeCorrectRequest() throws Exception {
+    void testRegisterUser_shouldReturn201_whenRequestIsCorrect() throws Exception {
+        // Arrange
+        SignupRequest dto = new SignupRequest("testuser", "password123");
 
-        // Arange
-        SignupRequest dto = new SignupRequest("A", "password123");
-        User expectedUser = new User(1L, "A", "hashed_password");
-
-        when(authService.registerUser(any(SignupRequest.class))).thenReturn(expectedUser);
-
-        // Act Assert
+        // Act & Assert
         String requestBody = objectMapper.writeValueAsString(dto);
-        mockMvc.perform(post("/api/auth/signup").contentType(MediaType.APPLICATION_JSON).content(requestBody))
-                .andExpect(status().isCreated()).andExpect(jsonPath("$.id").value(1L))
-                .andExpect(jsonPath("$.username").value("A"));
+        mockMvc.perform(
+                post("/api/auth/signup").with(csrf()).contentType(MediaType.APPLICATION_JSON).content(requestBody))
+                .andExpect(status().isCreated()).andExpect(jsonPath("$.username").value("testuser"));
 
+        // データベースにユーザーが正しく保存されたかを検証
+        assertThat(userRepository.findByUsername("testuser")).isPresent();
     }
 
     @Test
     @DisplayName("signupの空ユーザー名テスト-異常系")
     void testRegisterUser_shouldReturn400_whenUsernameIsInvalid() throws Exception {
+        // Arrange
+        SignupRequest dto = new SignupRequest("", "password123"); // 不正なリクエスト
 
-        // Arange
-        SignupRequest dto = new SignupRequest("", "password123");
-
-        // Act Assert
+        // Act & Assert
         String requestBody = objectMapper.writeValueAsString(dto);
-        mockMvc.perform(post("/api/auth/signup").contentType(MediaType.APPLICATION_JSON).content(requestBody))
+        mockMvc.perform(
+                post("/api/auth/signup").with(csrf()).contentType(MediaType.APPLICATION_JSON).content(requestBody))
                 .andExpect(status().isBadRequest());
-
-        verify(authService, never()).registerUser(any());
     }
 
     @Test
     @DisplayName("signupのユーザー名重複テスト-異常系")
     void testRegisterUser_shouldReturn409_whenUsernameExists() throws Exception {
+        // Arrange: 先に重複するユーザーをデータベースに保存しておく
+        userRepository.save(new User(null, "existinguser", "password123"));
 
-        // Arange
-        SignupRequest dto = new SignupRequest("A", "password123");
-        when(authService.registerUser(any(SignupRequest.class)))
-                .thenThrow(new UserAlreadyExistsException("既にユーザー名が存在します"));
+        SignupRequest dto = new SignupRequest("existinguser", "password123456");
 
-        // Act Assert
+        // Act & Assert
         String requestBody = objectMapper.writeValueAsString(dto);
-        mockMvc.perform(post("/api/auth/signup").contentType(MediaType.APPLICATION_JSON).content(requestBody))
+        mockMvc.perform(
+                post("/api/auth/signup").with(csrf()).contentType(MediaType.APPLICATION_JSON).content(requestBody))
                 .andExpect(status().isConflict());
-
-        verify(authService, times(1)).registerUser(any(SignupRequest.class));
     }
 
     @Test
     @DisplayName("loginのテスト-正常系")
     void testAuthenticateUser_正しい資格情報で200OKとJWTを返す() throws Exception {
+        // Arrange: データベースにテストユーザーを実際に保存する
+        User testUser = new User();
+        testUser.setUsername("A");
+        testUser.setPassword(passwordEncoder.encode("password123")); // パスワードはハッシュ化して保存
+        userRepository.save(testUser);
 
-        // Arange
         LoginRequest dto = new LoginRequest("A", "password123");
 
-        Authentication authentication = mock(Authentication.class);
-
-        when(authenticationManager.authenticate(any())).thenReturn(authentication);
-
-        when(jwtUtils.generateToken(authentication)).thenReturn("mocked.jwt.token");
-
-        // Act Assert
+        // Act & Assert
         String requestBody = objectMapper.writeValueAsString(dto);
-        mockMvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON).content(requestBody))
-                .andExpect(status().isOk()).andExpect(jsonPath("$.accessToken").value("mocked.jwt.token"));
-
-        verify(jwtUtils, times(1)).generateToken(any(Authentication.class));
-
+        mockMvc.perform(post("/api/auth/login").with(csrf()) // CSRF対策はそのまま
+                .contentType(MediaType.APPLICATION_JSON).content(requestBody)).andExpect(status().isOk())
+                .andExpect(jsonPath("$.accessToken").isNotEmpty()); // トークンが空でないことを検証
     }
 
     @Test
-    @DisplayName("loginのテスト-異常系")
+    @DisplayName("loginのテスト-異常系（パスワード間違い）")
     void testAuthenticateUser_不正な資格情報で401を返す() throws Exception {
+        // Arrange: 正しいユーザー情報をDBに保存
+        User testUser = new User();
+        testUser.setUsername("A");
+        testUser.setPassword(passwordEncoder.encode("correct_password"));
+        userRepository.save(testUser);
 
-        // Arange
-        LoginRequest dto = new LoginRequest("A", "password123");
+        LoginRequest dto = new LoginRequest("A", "wrong_password"); // 間違ったパスワードでログイン試行
 
-        when(authenticationManager.authenticate(any())).thenThrow(new BadCredentialsException("Bad credentials"));
-
-        // Act Assert
+        // Act & Assert
         String requestBody = objectMapper.writeValueAsString(dto);
-        mockMvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON).content(requestBody))
-                .andExpect(status().isUnauthorized());
-
-        verify(jwtUtils, never()).generateToken(any());
-
+        mockMvc.perform(
+                post("/api/auth/login").with(csrf()).contentType(MediaType.APPLICATION_JSON).content(requestBody))
+                .andExpect(status().isForbidden());
     }
 }

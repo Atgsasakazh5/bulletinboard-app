@@ -1,5 +1,7 @@
 package com.example.bulletinboard.config;
 
+import java.util.*;
+
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -8,6 +10,7 @@ import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.authentication.configuration.*;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configurers.*;
 import org.springframework.security.config.http.*;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -17,6 +20,7 @@ import org.springframework.security.crypto.password.*;
 import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.*;
+import org.springframework.web.cors.*;
 
 import com.example.bulletinboard.security.*;
 
@@ -37,19 +41,30 @@ public class SecurityConfig {
      * @return 設定済みのSecurityFilterChain
      * @throws Exception
      */
+    // SecurityConfig.java の securityFilterChain メソッドを置き換える
+
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        http.csrf(csrf -> csrf.disable()) // 1. CSRF保護を無効化
-                // セッション管理をステートレスに
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                // UsernamePasswordAuthenticationFilterの前に自作フィルターをかませる
-                .addFilterBefore(authTokenFilter, UsernamePasswordAuthenticationFilter.class)
+        http
+                // 1. CSRF保護を無効化
+                .csrf(AbstractHttpConfigurer::disable)
 
+                // 2. 従来のフォームベースログインを無効化
+                .formLogin(AbstractHttpConfigurer::disable)
+
+                // 3. HTTP Basic認証を無効化
+                .httpBasic(AbstractHttpConfigurer::disable)
+
+                // 4. セッション管理をステートレス（状態を持たない）に設定
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+
+                // 5. 各エンドポイントへのアクセス制御ルールを設定
                 .authorizeHttpRequests(auth -> auth.requestMatchers("/api/auth/**").permitAll()
-                        // 2. GETリクエストのルール
-                        .requestMatchers(HttpMethod.GET, "/api/posts", "/api/posts/**").permitAll()
-                        // 3. それ以外のリクエストのルール
-                        .anyRequest().authenticated());
+                        .requestMatchers(HttpMethod.GET, "/api/posts", "/api/posts/**").permitAll().anyRequest()
+                        .authenticated())
+
+                // 6. 自作のJWTフィルターを、ユーザー名・パスワード認証の前に配置
+                .addFilterBefore(authTokenFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
@@ -74,6 +89,19 @@ public class SecurityConfig {
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration authConfig) throws Exception {
         return authConfig.getAuthenticationManager();
+    }
+
+    // CORS設定のBean
+    @Bean
+    CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration configuration = new CorsConfiguration();
+        // ★★★ デプロイ後に、URLを正しく設定 ★★★
+        configuration.setAllowedOrigins(List.of("http://localhost:5500", "https://your-frontend-domain.com"));
+        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        configuration.setAllowedHeaders(List.of("Authorization", "Content-Type"));
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", configuration);
+        return source;
     }
 
 }
