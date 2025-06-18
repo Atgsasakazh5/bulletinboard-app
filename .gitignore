@@ -31,3 +31,6 @@ build/
 
 ### VS Code ###
 .vscode/
+
+# ローカル環境固有の設定ファイルはGitの管理対象外にする
+/application.properties
