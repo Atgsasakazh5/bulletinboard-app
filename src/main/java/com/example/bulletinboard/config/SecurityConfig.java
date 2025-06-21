@@ -46,6 +46,8 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
+                //CROS設定を有効化
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 // 1. CSRF保護を無効化
                 .csrf(AbstractHttpConfigurer::disable)
 
