@@ -60,10 +60,12 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 
                 // 5. 各エンドポイントへのアクセス制御ルールを設定
-                .authorizeHttpRequests(auth -> auth.requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/api/auth/**").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/posts", "/api/posts/**").permitAll().anyRequest()
-                        .authenticated())
+                        .requestMatchers(HttpMethod.GET, "/api/posts", "/api/posts/**").permitAll()
+                        .anyRequest().authenticated()
+                )
 
                 // 6. 自作のJWTフィルターを、ユーザー名・パスワード認証の前に配置
                 .addFilterBefore(authTokenFilter, UsernamePasswordAuthenticationFilter.class);
