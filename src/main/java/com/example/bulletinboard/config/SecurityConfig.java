@@ -36,13 +36,12 @@ public class SecurityConfig {
 
     /**
      * セキュリティルールを定義するBean
-     * 
+     *
      * @param http HttpSecurityオブジェクト
      * @return 設定済みのSecurityFilterChain
      * @throws Exception
      */
     // SecurityConfig.java の securityFilterChain メソッドを置き換える
-
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
@@ -61,7 +60,8 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 
                 // 5. 各エンドポイントへのアクセス制御ルールを設定
-                .authorizeHttpRequests(auth -> auth.requestMatchers("/api/auth/**").permitAll()
+                .authorizeHttpRequests(auth -> auth.requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/posts", "/api/posts/**").permitAll().anyRequest()
                         .authenticated())
 
@@ -73,7 +73,7 @@ public class SecurityConfig {
 
     /**
      * パスワードをハッシュ化するためのPasswordEncoderのBean
-     * 
+     *
      * @return PasswordEncoder
      */
     @Bean
@@ -83,7 +83,7 @@ public class SecurityConfig {
 
     /**
      * 認証処理の要であるAuthenticationManagerをBeanとして登録
-     * 
+     *
      * @param authConfig
      * @return
      * @throws Exception
