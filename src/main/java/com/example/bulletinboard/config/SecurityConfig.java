@@ -25,7 +25,7 @@ import org.springframework.web.cors.*;
 import com.example.bulletinboard.security.*;
 
 @Configuration
-@EnableWebSecurity
+@EnableWebSecurity(debug = true)
 public class SecurityConfig {
 
     private final AuthTokenFilter authTokenFilter;
