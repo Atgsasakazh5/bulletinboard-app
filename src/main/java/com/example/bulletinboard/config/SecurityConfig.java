@@ -31,14 +31,6 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        // CORS設定を直接定義
-        http.cors(cors -> cors.configurationSource(request -> {
-            CorsConfiguration configuration = new CorsConfiguration();
-            configuration.setAllowedOrigins(List.of("https://shoptransporter.sakura.ne.jp", "http://localhost:5500", "null"));
-            configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-            configuration.setAllowedHeaders(List.of("Authorization", "Content-Type"));
-            return configuration;
-        }));
 
         // CSRF、フォームログイン、HTTP Basic認証を無効化
         http.csrf(AbstractHttpConfigurer::disable)
