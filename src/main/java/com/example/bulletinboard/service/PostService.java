@@ -3,20 +3,27 @@ package com.example.bulletinboard.service;
 import java.time.*;
 import java.util.*;
 
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.*;
 
 import com.example.bulletinboard.dto.*;
 import com.example.bulletinboard.entity.*;
 import com.example.bulletinboard.exception.*;
 import com.example.bulletinboard.repository.*;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class PostService {
     private final PostRepository postRepository;
 
-    public PostService(PostRepository postRepository) {
+    private final UserRepository userRepository;
+
+    public PostService(PostRepository postRepository, UserRepository userRepository) {
         this.postRepository = postRepository;
+        this.userRepository = userRepository;
     }
+
 
     // 全件取得
     public List<Post> findAll() {
@@ -24,12 +31,17 @@ public class PostService {
     }
 
     // 新規登録
-    public Post createPost(PostCreateRequest request) {
+    // ★★★ PostService の createPost メソッドを置き換え ★★★
+    public Post createPost(PostCreateRequest request, UserDetails userDetails) {
+        // ユーザー名からUserエンティティを検索
+        User user = userRepository.findByUsername(userDetails.getUsername())
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
         Post newPost = new Post();
-        newPost.setAuthor(request.author()); // recordなのでゲッターはフィールド名で自動生成
+        // 投稿者名ではなく、Userエンティティそのものを設定
+        newPost.setUser(user);
         newPost.setContent(request.content());
         newPost.setCreatedAt(LocalDateTime.now());
-        // saveメソッドは継承元に含まれており、渡したエンティティをIDが採番された状態で保存し、戻り値として渡してくれる
         return postRepository.save(newPost);
     }
 
@@ -40,22 +52,30 @@ public class PostService {
     }
 
     // ID指定で投稿削除
-    public void deleteById(Long id) {
-        if (postRepository.existsById(id)) {
-            postRepository.deleteById(id);
-        } else {
-            throw new ResourceNotFoundException("Post not found with id: " + id);
+    @Transactional
+    public Post updatePost(Long id, PostCreateRequest request, UserDetails userDetails) {
+        Post targetPost = findById(id);
+        String requestUsername = userDetails.getUsername();
+
+        // ★★★ 所有権チェックを追加 ★★★
+        if (!targetPost.getUser().getUsername().equals(requestUsername)) {
+            throw new AccessDeniedException("この投稿を編集する権限がありません。");
         }
+
+        targetPost.setContent(request.content());
+        return postRepository.save(targetPost);
     }
 
-    // ID指定で投稿を更新
-    public Post updatePost(Long id, PostCreateRequest request) {
-        // findByIdに渡し、IDが存在しなければ例外を投げてくれる
+    @Transactional
+    public void deleteById(Long id, UserDetails userDetails) {
         Post targetPost = findById(id);
+        String requestUsername = userDetails.getUsername();
 
-        targetPost.setAuthor(request.author());
-        targetPost.setContent(request.content());
+        // ★★★ 所有権チェックを追加 ★★★
+        if (!targetPost.getUser().getUsername().equals(requestUsername)) {
+            throw new AccessDeniedException("この投稿を削除する権限がありません。");
+        }
 
-        return postRepository.save(targetPost);
+        postRepository.delete(targetPost);
     }
 }

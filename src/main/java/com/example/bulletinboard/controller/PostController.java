@@ -5,6 +5,8 @@ import java.util.*;
 import jakarta.validation.*;
 
 import org.springframework.http.*;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import com.example.bulletinboard.dto.*;
@@ -28,8 +30,9 @@ public class PostController {
 
     @PostMapping("/posts") // POSTリクエスト
     @ResponseStatus(HttpStatus.CREATED)
-    public Post createPost(@Valid @RequestBody PostCreateRequest request) {
-        return postService.createPost(request);
+    public Post createPost(@Valid @RequestBody PostCreateRequest request,
+                           @AuthenticationPrincipal UserDetails userDetails) {
+        return postService.createPost(request, userDetails);
     }
 
     // idの投稿が存在しない場合はExceptionの@ResponseStatusからSpringがレスポンスを生成。
@@ -42,13 +45,15 @@ public class PostController {
     // idの一致する投稿が存在する場合に削除
     @DeleteMapping("/posts/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void deleteById(@PathVariable Long id) {
-        postService.deleteById(id);
+    public void deleteById(@PathVariable Long id,
+                           @AuthenticationPrincipal UserDetails userDetails) {
+        postService.deleteById(id, userDetails);
     }
 
     // idの一致する投稿が存在する場合に更新
-    @PutMapping("/posts/{id}")
-    public Post updatePost(@PathVariable Long id, @Valid @RequestBody PostCreateRequest request) {
-        return postService.updatePost(id, request);
+    public Post updatePost(@PathVariable Long id,
+                           @Valid @RequestBody PostCreateRequest request,
+                           @AuthenticationPrincipal UserDetails userDetails) {
+        return postService.updatePost(id, request, userDetails);
     }
 }

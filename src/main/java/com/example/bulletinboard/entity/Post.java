@@ -18,13 +18,14 @@ public class Post {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
-    private String author;
+    @ManyToOne(fetch = FetchType.LAZY) // 多対一のリレーションシップ
+    @JoinColumn(name = "user_id", nullable = false) // postsテーブルにuser_idカラムを作成
+    private User user;
 
     @Column(nullable = false, length = 1000)
     private String content;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
-    
+
 }
