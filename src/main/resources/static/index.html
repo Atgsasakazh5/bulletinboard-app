@@ -69,8 +69,24 @@
                 <p>投稿を読み込んでいます...</p>
             </div>
         </section>
-    </main>
-
+    </main> <div id="edit-modal" class="modal hidden">
+        <div class="modal-content">
+            <span id="close-modal-button" class="close-button">&times;</span>
+            <h2>投稿の編集</h2>
+            <form id="edit-form">
+                <input type="hidden" id="edit-post-id">
+                <div class="form-group">
+                    <label for="edit-author">投稿者名:</label>
+                    <input type="text" id="edit-author" name="author" required>
+                </div>
+                <div class="form-group">
+                    <label for="edit-content">投稿内容:</label>
+                    <textarea id="edit-content" name="content" rows="4" required></textarea>
+                </div>
+                <button type="submit">更新する</button>
+            </form>
+        </div>
+    </div>
     <script src="script.js"></script>
 </body>
 </html>
