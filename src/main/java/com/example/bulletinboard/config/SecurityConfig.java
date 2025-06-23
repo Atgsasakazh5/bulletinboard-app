@@ -15,7 +15,6 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import org.springframework.web.cors.CorsConfiguration;
 
 import com.example.bulletinboard.security.AuthTokenFilter;
 
@@ -42,7 +41,9 @@ public class SecurityConfig {
 
         // 認可ルールを設定
         http.authorizeHttpRequests(auth -> auth
-                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                // ★★★ フロントエンドのファイルへのアクセスを許可するルールを追加 ★★★
+                .requestMatchers("/", "/index.html", "/style.css", "/script.js", "/favicon.ico").permitAll()
+
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/posts", "/api/posts/**").permitAll()
                 .anyRequest().authenticated()

@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>掲示板</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <h1>掲示板アプリケーション</h1>
+    </header>
+    <main>
+        <section id="login-section" class="auth-section">
+            <h2>ログイン</h2>
+            <form id="login-form">
+                <div class="form-group">
+                    <label for="username">ユーザー名:</label>
+                    <input type="text" id="username" name="username" required>
+                </div>
+                <div class="form-group">
+                    <label for="password">パスワード:</label>
+                    <input type="password" id="password" name="password" required>
+                </div>
+                <button type="submit">ログイン</button>
+            </form>
+            <p class="auth-switch-link">アカウントをお持ちでないですか？ <a href="#" id="show-signup-link">新規登録</a></p>
+        </section>
+
+        <section id="signup-section" class="auth-section hidden">
+            <h2>新規登録</h2>
+            <form id="signup-form">
+                <div class="form-group">
+                    <label for="signup-username">ユーザー名:</label>
+                    <input type="text" id="signup-username" name="username" required>
+                </div>
+                <div class="form-group">
+                    <label for="signup-password">パスワード (6文字以上):</label>
+                    <input type="password" id="signup-password" name="password" required minlength="6">
+                </div>
+                <button type="submit">登録する</button>
+            </form>
+            <p class="auth-switch-link">既にアカウントをお持ちですか？ <a href="#" id="show-login-link">ログイン</a></p>
+        </section>
+
+        <section id="auth-status-section" class="hidden">
+            <p id="user-info"></p>
+            <button id="logout-button">ログアウト</button>
+        </section>
+
+        <section id="post-form-section" class="post-form-section hidden">
+            <h2>新規投稿</h2>
+            <form id="post-form">
+                <div class="form-group">
+                    <label for="post-author">投稿者名:</label>
+                    <input type="text" id="post-author" name="author" required>
+                </div>
+                <div class="form-group">
+                    <label for="post-content">投稿内容:</label>
+                    <textarea id="post-content" name="content" rows="4" required></textarea>
+                </div>
+                <button type="submit">投稿する</button>
+            </form>
+        </section>
+
+        <section class="posts-section">
+            <h2>投稿一覧</h2>
+            <div id="posts-container">
+                <p>投稿を読み込んでいます...</p>
+            </div>
+        </section>
+    </main>
+
+    <script src="script.js"></script>
+</body>
+</html>
