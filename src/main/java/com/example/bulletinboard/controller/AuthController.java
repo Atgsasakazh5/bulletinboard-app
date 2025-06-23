@@ -6,6 +6,7 @@ import org.springframework.http.*;
 import org.springframework.security.authentication.*;
 import org.springframework.security.core.*;
 import org.springframework.security.core.context.*;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import com.example.bulletinboard.dto.*;
@@ -37,17 +38,21 @@ public class AuthController {
         return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
 
+    // AuthController.java の authenticateUser メソッド
     @PostMapping("/login")
     public ResponseEntity<JwtResponse> authenticateUser(@Valid @RequestBody LoginRequest loginRequest) {
-
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(loginRequest.username(), loginRequest.password()));
 
         SecurityContextHolder.getContext().setAuthentication(authentication);
-
         String jwt = jwtUtils.generateToken(authentication);
 
-        JwtResponse jwtResponse = new JwtResponse(jwt);
+        // ★★★ 認証情報からUserDetailsを取得し、ユーザー名を得る ★★★
+        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+        String username = userDetails.getUsername();
+
+        // ★★★ JwtResponseにトークンとユーザー名をセットして返す ★★★
+        JwtResponse jwtResponse = new JwtResponse(jwt, username);
         return ResponseEntity.ok(jwtResponse);
     }
 }
