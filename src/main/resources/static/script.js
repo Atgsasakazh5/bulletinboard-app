@@ -88,7 +88,71 @@ document.addEventListener('DOMContentLoaded', () => {
     function showSignupForm() { loginSection.classList.add('hidden'); signupSection.classList.remove('hidden'); }
     function openEditModal(post) { editPostIdInput.value = post.id; editAuthorInput.value = post.author; editContentInput.value = post.content; editModal.classList.remove('hidden'); }
     function closeEditModal() { editModal.classList.add('hidden'); }
-    async function fetchAndDisplayPosts() { try { const response = await fetch(`${API_BASE_URL}/posts`); if (!response.ok) throw new Error(`API Error: ${response.statusText}`); const posts = await response.json(); postsContainer.innerHTML = ''; if (posts.length === 0) { postsContainer.innerHTML = '<p>まだ投稿はありません。</p>'; return; } posts.forEach(post => { const postElement = document.createElement('div'); postElement.classList.add('post'); const postAuthor = document.createElement('h3'); postAuthor.textContent = post.author; const postMeta = document.createElement('p'); postMeta.classList.add('post-meta'); const formattedDate = new Date(post.createdAt).toLocaleString('ja-JP'); postMeta.textContent = `投稿日時: ${formattedDate}`; const postContent = document.createElement('p'); postContent.textContent = post.content; postElement.appendChild(postAuthor); postElement.appendChild(postMeta); postElement.appendChild(postContent); const actionsContainer = document.createElement('div'); actionsContainer.classList.add('post-actions'); const editButton = document.createElement('button'); editButton.textContent = '編集'; editButton.classList.add('edit-btn'); editButton.addEventListener('click', () => openEditModal(post)); const deleteButton = document.createElement('button'); deleteButton.textContent = '削除'; deleteButton.classList.add('delete-btn'); deleteButton.addEventListener('click', () => handleDeleteClick(post.id)); actionsContainer.appendChild(editButton); actionsContainer.appendChild(deleteButton); postElement.appendChild(actionsContainer); postsContainer.appendChild(postElement); }); } catch (error) { console.error('投稿の読み込みに失敗しました:', error); postsContainer.innerHTML = '<p>投稿の読み込みに失敗しました。</p>'; } }
+/** 投稿を全て取得して画面に表示する */
+async function fetchAndDisplayPosts() {
+    try {
+        const response = await fetch(`${API_BASE_URL}/posts`);
+        if (!response.ok) throw new Error(`API Error: ${response.statusText}`);
+        const posts = await response.json(); // ここで受け取るpostsはPostResponseの配列になる
+
+        postsContainer.innerHTML = '';
+        if (posts.length === 0) {
+            postsContainer.innerHTML = '<p>まだ投稿はありません。</p>';
+            return;
+        }
+
+        // ★★★ ログイン中のユーザー名を取得 ★★★
+        const loggedInUsername = localStorage.getItem('username');
+
+        posts.forEach(post => {
+            const postElement = document.createElement('div');
+            postElement.classList.add('post');
+
+            const postAuthor = document.createElement('h3');
+            // ★★★ DTOのauthorUsernameフィールドを使う ★★★
+            postAuthor.textContent = post.authorUsername;
+
+            const postMeta = document.createElement('p');
+            postMeta.classList.add('post-meta');
+            const formattedDate = new Date(post.createdAt).toLocaleString('ja-JP');
+            postMeta.textContent = `投稿日時: ${formattedDate}`;
+
+            const postContent = document.createElement('p');
+            postContent.textContent = post.content;
+
+            postElement.appendChild(postAuthor);
+            postElement.appendChild(postMeta);
+            postElement.appendChild(postContent);
+
+            // ★★★ ログイン中のユーザーと投稿の作者が一致する場合のみ、ボタンを追加 ★★★
+            if (loggedInUsername && loggedInUsername === post.authorUsername) {
+                const actionsContainer = document.createElement('div');
+                actionsContainer.classList.add('post-actions');
+
+                const editButton = document.createElement('button');
+                editButton.textContent = '編集';
+                editButton.classList.add('edit-btn');
+                // postオブジェクト全体を渡せるように修正
+                const editPostData = {id: post.id, author: post.authorUsername, content: post.content};
+                editButton.addEventListener('click', () => openEditModal(editPostData));
+
+                const deleteButton = document.createElement('button');
+                deleteButton.textContent = '削除';
+                deleteButton.classList.add('delete-btn');
+                deleteButton.addEventListener('click', () => handleDeleteClick(post.id));
+
+                actionsContainer.appendChild(editButton);
+                actionsContainer.appendChild(deleteButton);
+                postElement.appendChild(actionsContainer);
+            }
+
+            postsContainer.appendChild(postElement);
+        });
+    } catch (error) {
+        console.error('投稿の読み込みに失敗しました:', error);
+        postsContainer.innerHTML = '<p>投稿の読み込みに失敗しました。</p>';
+    }
+}
     async function handleSignupSubmit(event) { event.preventDefault(); const username = signupForm.username.value; const password = signupForm.password.value; try { const response = await fetch(`${API_BASE_URL}/auth/signup`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username, password }) }); const data = await response.json(); if (!response.ok) { throw new Error(data.message || 'ユーザー登録に失敗しました。'); } alert('ユーザー登録が完了しました。ログインしてください。'); signupForm.reset(); showLoginForm(); } catch (error) { console.error('サインアップエラー:', error); alert(error.message); } }
     async function handlePostSubmit(event) { event.preventDefault(); const token = localStorage.getItem('jwtToken'); if (!token) { alert('投稿するにはログインが必要です。'); return; } const postData = { author: postAuthorInput.value, content: postContentInput.value }; try { const response = await fetch(`${API_BASE_URL}/posts`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify(postData) }); if (!response.ok) { throw new Error(`投稿に失敗しました: ${response.statusText}`); } postForm.reset(); await fetchAndDisplayPosts(); } catch (error) { console.error('投稿エラー:', error); alert(error.message); } }
     async function handleDeleteClick(postId) { if (!confirm('本当にこの投稿を削除しますか？')) { return; } const token = localStorage.getItem('jwtToken'); if (!token) { alert('操作にはログインが必要です。'); return; } try { const response = await fetch(`${API_BASE_URL}/posts/${postId}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } }); if (response.status === 204) { alert('投稿を削除しました。'); await fetchAndDisplayPosts(); } else { throw new Error(`削除に失敗しました: ${response.statusText}`); } } catch (error) { console.error('削除エラー:', error); alert(error.message); } }

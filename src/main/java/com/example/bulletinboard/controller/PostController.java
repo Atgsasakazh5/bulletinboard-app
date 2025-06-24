@@ -1,20 +1,29 @@
 package com.example.bulletinboard.controller;
 
-import java.util.*;
+import java.util.List;
 
-import jakarta.validation.*;
-
-import org.springframework.http.*;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.bind.annotation.RestController;
 
-import com.example.bulletinboard.dto.*;
-import com.example.bulletinboard.entity.*;
-import com.example.bulletinboard.service.*;
+import com.example.bulletinboard.dto.PostCreateRequest;
+import com.example.bulletinboard.dto.PostResponse; // ★★★ importを変更 ★★★
+import com.example.bulletinboard.service.PostService;
+
+import jakarta.validation.Valid;
 
 @RestController
-@RequestMapping("/api")
+@RequestMapping("/api/posts") // ★★★ ベースパスを/api/postsに集約 ★★★
 public class PostController {
 
     private final PostService postService;
@@ -23,37 +32,34 @@ public class PostController {
         this.postService = postService;
     }
 
-    @GetMapping("/posts") // GETリクエスト
-    public List<Post> findAll() {
+    @GetMapping // GET /api/posts
+    public List<PostResponse> findAll() { // ★★★ 戻り値の型を変更 ★★★
         return postService.findAll();
     }
 
-    @PostMapping("/posts") // POSTリクエスト
+    @PostMapping // POST /api/posts
     @ResponseStatus(HttpStatus.CREATED)
-    public Post createPost(@Valid @RequestBody PostCreateRequest request,
-                           @AuthenticationPrincipal UserDetails userDetails) {
+    public PostResponse createPost(@Valid @RequestBody PostCreateRequest request,
+                                   @AuthenticationPrincipal UserDetails userDetails) { // ★★★ 戻り値の型を変更 ★★★
         return postService.createPost(request, userDetails);
     }
 
-    // idの投稿が存在しない場合はExceptionの@ResponseStatusからSpringがレスポンスを生成。
-    // 200OKのStatusは省略可
-    @GetMapping("/posts/{id}")
-    public Post findById(@PathVariable Long id) {
+    @GetMapping("/{id}") // GET /api/posts/{id}
+    public PostResponse findById(@PathVariable Long id) { // ★★★ 戻り値の型を変更 ★★★
         return postService.findById(id);
     }
 
-    // idの一致する投稿が存在する場合に削除
-    @DeleteMapping("/posts/{id}")
+    @PutMapping("/{id}") // ★★★ @PutMappingアノテーションを追加 ★★★
+    public PostResponse updatePost(@PathVariable Long id,
+                                   @Valid @RequestBody PostCreateRequest request,
+                                   @AuthenticationPrincipal UserDetails userDetails) { // ★★★ 戻り値の型を変更 ★★★
+        return postService.updatePost(id, request, userDetails);
+    }
+
+    @DeleteMapping("/{id}") // DELETE /api/posts/{id}
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteById(@PathVariable Long id,
                            @AuthenticationPrincipal UserDetails userDetails) {
         postService.deleteById(id, userDetails);
-    }
-
-    // idの一致する投稿が存在する場合に更新
-    public Post updatePost(@PathVariable Long id,
-                           @Valid @RequestBody PostCreateRequest request,
-                           @AuthenticationPrincipal UserDetails userDetails) {
-        return postService.updatePost(id, request, userDetails);
     }
 }
