@@ -28,40 +28,29 @@ public class SecurityConfig {
         this.authTokenFilter = authTokenFilter;
     }
 
-//    @Bean
-//    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-//
-//        // CSRF、フォームログイン、HTTP Basic認証を無効化
-//        http.csrf(AbstractHttpConfigurer::disable)
-//                .formLogin(AbstractHttpConfigurer::disable)
-//                .httpBasic(AbstractHttpConfigurer::disable);
-//
-//        // セッション管理をステートレスに
-//        http.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
-//
-//        // 認可ルールを設定
-//        http.authorizeHttpRequests(auth -> auth
-//                // ★★★ フロントエンドのファイルへのアクセスを許可するルールを追加 ★★★
-//                .requestMatchers("/", "/index.html", "/style.css", "/script.js", "/favicon.ico").permitAll()
-//
-//                .requestMatchers("/api/auth/**").permitAll()
-//                .requestMatchers(HttpMethod.GET, "/api/posts", "/api/posts/**").permitAll()
-//                .anyRequest().authenticated()
-//        );
-//
-//        // JWTフィルターをチェーンに追加
-//        http.addFilterBefore(authTokenFilter, UsernamePasswordAuthenticationFilter.class);
-//
-//        return http.build();
-//    }
-
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        // CSRF保護のみを無効化し、それ以外の全てのアクセスを許可する、最もシンプルな設定
+
+        // CSRF、フォームログイン、HTTP Basic認証を無効化
         http.csrf(AbstractHttpConfigurer::disable)
-                .authorizeHttpRequests(auth -> auth
-                        .anyRequest().permitAll() // ★★★ 全てのリクエストを一時的に許可する ★★★
-                );
+                .formLogin(AbstractHttpConfigurer::disable)
+                .httpBasic(AbstractHttpConfigurer::disable);
+
+        // セッション管理をステートレスに
+        http.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
+
+        // 認可ルールを設定
+        http.authorizeHttpRequests(auth -> auth
+                // ★★★ フロントエンドのファイルへのアクセスを許可するルールを追加 ★★★
+                .requestMatchers("/", "/index.html", "/style.css", "/script.js", "/favicon.ico").permitAll()
+
+                .requestMatchers("/api/auth/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/posts", "/api/posts/**").permitAll()
+                .anyRequest().authenticated()
+        );
+
+        // JWTフィルターをチェーンに追加
+        http.addFilterBefore(authTokenFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
