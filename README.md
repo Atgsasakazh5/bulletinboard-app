@@ -42,17 +42,15 @@ JavaおよびSpring Bootを用いたWebアプリケーション開発スキル�
   - Git / GitHub
   - Maven
 
-## APIエンドポイント一覧
-
-| Method | URL | 説明 | 認証 |<br><br>
-| GET    | `/api/posts` | 全ての投稿を取得 | 不要 |<br>
-| GET    | `/api/posts/{id}` | 指定したIDの投稿を1件取得 | 不要 |<br>
-| POST   | `/api/posts` | 新しい投稿を作成 | 必要 (JWT) |<br>
-| PUT    | `/api/posts/{id}` | 指定したIDの投稿を更新 | 必要 (JWT) |<br>
-| DELETE | `/api/posts/{id}` | 指定したIDの投稿を削除 | 必要 (JWT) |<br>
-| POST   | `/api/auth/signup` | 新規ユーザー登録 | 不要 |<br>
-| POST   | `/api/auth/login` | ログインしてJWTを発行 | 不要 |<br>
-
+| Method | URL | 説明 | 認証 |
+|:---|:---|:---|:---|
+| GET    | `/api/posts` | 全ての投稿を取得します。 | 不要 |
+| GET    | `/api/posts/{id}` | 指定したIDの投稿を1件取得します。 | 不要 |
+| POST   | `/api/posts` | 新しい投稿を作成します。 | 必要 (JWT) |
+| PUT    | `/api/posts/{id}` | 指定したIDの投稿を更新します。 | 必要 (JWT) |
+| DELETE | `/api/posts/{id}` | 指定したIDの投稿を削除します。 | 必要 (JWT) |
+| POST   | `/api/auth/signup` | 新規ユーザー登録を行います。 | 不要 |
+| POST   | `/api/auth/login` | ログインしてJWTを発行します。 | 不要 |
 ## セットアップ・起動方法
 
 1.  **リポジトリをクローン:**
